@@ -1,0 +1,115 @@
+#include <Servo.h>
+
+const int NUM_SERVOS = 8; // Número total de servos
+Servo servos[NUM_SERVOS]; // Array para armazenar os objetos Servo
+
+// Pinos dos servos
+int servo_pins[NUM_SERVOS] = {2, 3, 4, 5, 6, 7, 8, 9}; 
+
+// Estrutura para representar um movimento de servo
+struct ServoMovement {
+  int servo_index;
+  int initial_angle;
+  int final_angle;
+  int duration_seconds;
+};
+
+// Variáveis para controlar loops
+int loop_count = 0;
+int loop_total = 1;
+
+// Função para mover um servo de um ângulo inicial para um ângulo final em uma duração específica
+void move_servo_duration(Servo &servo, int initial_angle, int final_angle, int duration_seconds) {
+  unsigned long start_time = millis();
+  unsigned long duration_ms = duration_seconds * 1000;
+  while (millis() - start_time < duration_ms) {
+    float progress = min((millis() - start_time) / (float)duration_ms, 1.0);
+    int current_angle = initial_angle + int((final_angle - initial_angle) * progress);
+    servo.write(current_angle);
+    delay(10); // Intervalo de atualização de 10ms (equivalente a 100Hz)
+  }
+}
+
+// Função para executar uma lista de movimentos sequencialmente
+void execute_movement_sequence(ServoMovement movements[], int num_movements) {
+  for (int loop = 0; loop < loop_total; loop++) {
+    for (int i = 0; i < num_movements; i++) {
+      ServoMovement movement = movements[i];
+      Servo &servo = servos[movement.servo_index];
+      move_servo_duration(servo, movement.initial_angle, movement.final_angle, movement.duration_seconds);
+    }
+  }
+}
+
+// Função para definir a quantidade de loops desejados
+void setLoopCount(int count) {
+  loop_total = count;
+  loop_count = 0;
+}
+
+void setup() {
+  // Inicializa os objetos Servo
+  for (int i = 0; i < NUM_SERVOS; i++) {
+    servos[i].attach(servo_pins[i]); 
+  }
+}
+
+void loop() {
+  if (loop_count < loop_total) {
+    // Exemplo de uma sequência de movimentos (pode ser ajustada conforme necessário)
+    ServoMovement sequence[] = {
+
+      // movimento de vaca
+      
+      // Bloco 1
+      // Articulações dianteira esquerda -  sentido -> em frente
+      {0, 120, 50, 1}, // Pino 2, move de 120 a 50 em 1 segundos - // subida do pé esquerdo traseiro
+      {1, 115, 6, 1},  // Pino 3, move de 115 a 6 em 1 segundos - // articulação traseira esquerda - sentido do tronco -> em frente
+      {0, 50, 120, 1}, // Pino 2, move de 120 a 50 em 1 segundos - // descida do pé esquerdo traseiro
+      
+
+    // Bloco 2
+      // Articulações traseiras direita  -  sentido -> em frente
+    //  {0, 120, 50, 1}, // Pino 2, move de 120 a 50 em 1 segundos - // subida do pé esquerdo traseiro
+     // {1, 115, 6, 1},  // Pino 3, move de 115 a 6 em 1 segundos - // articulação traseira esquerda - sentido do tronco -> em frente
+     // {0, 50, 120, 1}, // Pino 2, move de 120 a 50 em 1 segundos - // descida do pé esquerdo traseiro
+      
+
+      // Bloco 3
+      // Articulações dianteira direita  -  sentido -> em frente
+     // {0, 120, 50, 1}, // Pino 2, move de 120 a 50 em 1 segundos - // subida do pé esquerdo traseiro
+    //  {1, 115, 6, 1},  // Pino 3, move de 115 a 6 em 1 segundos - // articulação traseira esquerda - sentido do tronco -> em frente
+     // {0, 50, 120, 1}, // Pino 2, move de 120 a 50 em 1 segundos - // descida do pé esquerdo traseiro
+      
+
+      // Bloco 4
+      // Articulações traseira esquerda -  sentido -> em frente
+     // {0, 120, 50, 1}, // Pino 2, move de 120 a 50 em 1 segundos - // subida do pé esquerdo traseiro
+     // {1, 115, 6, 1},  // Pino 3, move de 115 a 6 em 1 segundos - // articulação traseira esquerda - sentido do tronco -> em frente
+     // {0, 50, 120, 1}, // Pino 2, move de 120 a 50 em 1 segundos - // descida do pé esquerdo traseiro
+     
+
+    // Bloco 5
+      // Articulações dianteira esquerda -  sentido -> trás - função de arrasto
+      //{1, 6, 115, 1},  // Pino 3, move de 115 a 6 em 1 segundos - // articulação traseira esquerda - sentido do tronco -> em frente
+
+      // Bloco 6
+      // Articulações traseiras direita -  sentido -> trás - função de arrasto
+     // {1, 6, 115, 1},  // Pino 3, move de 115 a 6 em 1 segundos - // articulação traseira esquerda - sentido do tronco -> em frente
+    
+    // Bloco 7
+      // Articulações dianteira direita -  sentido -> trás - função de arrasto
+     // {1, 6, 115, 1},  // Pino 3, move de 115 a 6 em 1 segundos - // articulação traseira esquerda - sentido do tronco -> em frente
+
+      // Bloco 8
+      // Articulações traseira esquerda -  sentido -> trás - função de arrasto
+    // {1, 6, 115, 1},  // Pino 3, move de 115 a 6 em 1 segundos - // articulação traseira esquerda - sentido do tronco -> em frente
+
+    };
+
+    // Executa a sequência de movimentos
+    execute_movement_sequence(sequence, sizeof(sequence) / sizeof(sequence[0]));
+    
+    loop_count++;
+  }
+}
