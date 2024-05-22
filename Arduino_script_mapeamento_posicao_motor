@@ -1,0 +1,37 @@
+// Configuração do Arduino para 1 Servo Motor para mapeamento de posição
+
+
+// Primeiro, configure o Arduino para controlar o servo motor. Carregue o seguinte código no seu Arduino:
+
+
+#include <Servo.h>
+
+Servo servo1;
+Servo servo2;
+
+void setup() {
+  // Inicializa a comunicação serial
+  Serial.begin(9600);
+
+  // Anexa os servos aos pinos
+  servo1.attach(3); // Pino 3 para o primeiro servo
+  servo2.attach(2); // Pino 2 para o segundo servo
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    // Lê a mensagem serial
+    String message = Serial.readStringUntil('\n');
+
+    // Divide a mensagem nos valores do servo e do ângulo
+    int servo_pin = message.substring(0, message.indexOf(',')).toInt();
+    int angle = message.substring(message.indexOf(',') + 1).toInt();
+
+    // Move o servo para o ângulo especificado
+    if (servo_pin == 2) {
+      servo2.write(angle);
+    } else if (servo_pin == 3) {
+      servo1.write(angle);
+    }
+  }
+}
