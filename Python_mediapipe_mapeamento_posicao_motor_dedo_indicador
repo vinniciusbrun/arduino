@@ -1,0 +1,90 @@
+Script Python
+Agora, crie o script Python para detectar gestos das mãos usando MediaPipe e controlar o servo motor via serial:
+
+
+import cv2
+import mediapipe as mp
+import serial
+import time
+
+# Inicializa o MediaPipe Hands
+mp_drawing = mp.solutions.drawing_utils
+mp_hands = mp.solutions.hands
+
+# Inicializa a comunicação serial com o Arduino
+arduino = serial.Serial(port='COM4', baudrate=9600, timeout=.1)  # Certifique-se de que 'COM4' seja a porta correta
+
+def write_read(x):
+    arduino.write(bytes(f"{x}\n", 'utf-8'))
+    time.sleep(0.05)
+    data = arduino.readline().decode('utf-8').strip()
+    return data
+
+# Captura de vídeo da webcam
+cap = cv2.VideoCapture(0)
+
+trajectory = []  # Lista para armazenar as posições anteriores do indicador
+
+with mp_hands.Hands(
+    static_image_mode=False,
+    max_num_hands=1,
+    min_detection_confidence=0.9,
+    min_tracking_confidence=0.9) as hands:
+
+    while cap.isOpened():
+        success, image = cap.read()
+        if not success:
+            print("Ignorando a câmera vazia.")
+            continue
+
+        # Espelha a imagem horizontalmente
+        image = cv2.flip(image, 1)
+
+        # Converte a imagem para RGB
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        # Processa a imagem com o MediaPipe Hands
+        results = hands.process(image_rgb)
+
+        if results.multi_hand_landmarks:
+            for hand_landmarks in results.multi_hand_landmarks:
+                # Obtém a posição do ponto de referência do dedo indicador
+                index_finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+                
+                # Calcula o ângulo com base na posição y do dedo indicador
+                # A posição y é multiplicada por 180 para converter em um ângulo entre 0 e 180 graus
+                servo_angle = int(index_finger_tip.y * 180)
+                
+                # Envia o ângulo para o Arduino
+                position = write_read(servo_angle)
+                print(f"Posição do servo enviada: {servo_angle} | Resposta do Arduino: {position}")
+                
+                # Armazena a posição do indicador na lista de trajetória
+                trajectory.append((index_finger_tip.x, index_finger_tip.y))
+                
+                # Desenha uma linha conectando os pontos da trajetória
+                if len(trajectory) > 1:
+                    for i in range(1, len(trajectory)):
+                        cv2.line(image, (int(trajectory[i-1][0] * image.shape[1]), int(trajectory[i-1][1] * image.shape[0])),
+                                 (int(trajectory[i][0] * image.shape[1]), int(trajectory[i][1] * image.shape[0])),
+                                 (255, 0, 0), 2)
+                
+                # Desenha um círculo vermelho com borda branca ao redor da ponta do dedo indicador
+                center_x = int(index_finger_tip.x * image.shape[1])
+                center_y = int(index_finger_tip.y * image.shape[0])
+                cv2.circle(image, (center_x, center_y), 10, (255, 255, 255), 2)  # Borda branca
+                cv2.circle(image, (center_x, center_y), 8, (0, 0, 255), -1)  # Círculo vermelho preenchido
+                
+                # Mostra a posição do servo na tela
+                cv2.putText(image, f"Posição do servo: {position}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
+        cv2.imshow('Painel de controle e gravação de movimento', image)
+
+        if cv2.waitKey(5) & 0xFF == 27:
+            break
+
+cap.release()
+cv2.destroyAllWindows()
+
+
+
