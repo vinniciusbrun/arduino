@@ -1,0 +1,58 @@
+// O código permite que ao acionar um botão tipo pull, um led seja aceso. Ao precioná-lo novamante, o led se apagará. Se apagado, se acenderá novamente caso um sensor sônico identifique um objeto entre 16 a 1 cm e permanecerá aceso por 10s.
+
+
+#include <NewPing.h>
+
+#define TRIGGER_PIN  9
+#define ECHO_PIN     10
+#define MAX_DISTANCE 200
+#define LED_PIN      13
+#define BOTAO_PIN    2
+
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
+
+unsigned long ledOnTime = 0; // Variável para armazenar o tempo em que o LED foi ligado
+bool ledState = false;       // Estado atual do LED
+bool botaoState = false;     // Estado atual do botão pressionado
+bool prevBotaoState = false; // Estado anterior do botão
+int controlVar = 0;          // Variável de controle do LED
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(BOTAO_PIN, INPUT_PULLUP); // Configura o pino do botão com um pull-up interno
+  Serial.begin(9600);
+}
+
+void loop() {
+  delay(50); // Aguarda 50ms entre cada leitura
+
+  unsigned int distance = sonar.ping_cm();
+  Serial.print("Distância: ");
+  Serial.print(distance);
+  Serial.println("cm");
+
+  botaoState = digitalRead(BOTAO_PIN) == LOW; // Botão pressionado (LOW devido ao INPUT_PULLUP)
+
+  // Verifica se o botão foi pressionado (transição de HIGH para LOW)
+  if (botaoState && !prevBotaoState) {
+    controlVar = !controlVar; // Alterna o valor de controlVar entre 0 e 1
+    ledState = controlVar; // Atualiza o estado do LED com base na variável de controle
+    digitalWrite(LED_PIN, ledState ? HIGH : LOW); // Liga ou desliga o LED com base em ledState
+  }
+
+  prevBotaoState = botaoState; // Atualiza o estado anterior do botão
+
+  if (controlVar == 0) { // Se o controle do LED está desligado pelo botão
+    if (distance <= 16 && distance >= 1) { // Verifica se a distância está entre 1 e 16 cm
+      digitalWrite(LED_PIN, HIGH);
+      ledOnTime = millis(); // Atualiza o tempo em que o LED foi ligado
+      ledState = true;
+    }
+
+    // Verifica se 10 segundos se passaram desde que o LED foi ligado pela detecção de objeto
+    if (ledState && millis() - ledOnTime >= 10000) {
+      digitalWrite(LED_PIN, LOW);
+      ledState = false;
+    }
+  }
+}
