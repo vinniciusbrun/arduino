@@ -1,0 +1,69 @@
+#include <NewPing.h>
+
+#define TRIGGER_PIN  9
+#define ECHO_PIN     10
+#define MAX_DISTANCE 20  // Máxima distância de detecção em cm
+
+#define LED1_PIN     3
+#define LED2_PIN     4
+#define LED3_PIN     5
+#define LED4_PIN     6
+#define BOTAO_PIN    2
+
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
+
+unsigned long ledOnTime = 0; // Variável para armazenar o tempo em que os LEDs foram ligados
+bool ledState = false;       // Estado atual dos LEDs
+bool botaoState = false;     // Estado atual do botão pressionado
+bool prevBotaoState = false; // Estado anterior do botão
+int ledControl = 0;          // Variável de controle dos LEDs
+
+void setup() {
+  pinMode(LED1_PIN, OUTPUT);
+  pinMode(LED2_PIN, OUTPUT);
+  pinMode(LED3_PIN, OUTPUT);
+  pinMode(LED4_PIN, OUTPUT);
+  pinMode(BOTAO_PIN, INPUT_PULLUP); // Configura o pino do botão com um pull-up interno
+  Serial.begin(9600);
+}
+
+void loop() {
+  delay(50); // Aguarda 50ms entre cada leitura
+
+  unsigned int distance = sonar.ping_cm();
+  Serial.print("Distância: ");
+  Serial.print(distance);
+  Serial.println("cm");
+
+  botaoState = digitalRead(BOTAO_PIN) == HIGH; // Botão pressionado (HIGH devido ao INPUT_PULLUP)
+
+  // Verifica se o botão foi pressionado (transição de LOW para HIGH)
+  if (!botaoState && prevBotaoState) {
+    ledControl = !ledControl; // Alterna o valor de ledControl entre 0 e 1
+    ledState = ledControl;    // Atualiza o estado dos LEDs com base na variável de controle
+    setAllLeds(ledState);     // Liga ou desliga todos os LEDs com base em ledState
+  }
+
+  prevBotaoState = botaoState; // Atualiza o estado anterior do botão
+
+  if (ledControl == 0) { // Se o controle dos LEDs está desligado pelo botão
+    if (distance > 0 && distance <= 20) { // Verifica se a distância está dentro da faixa de 1 a 20 cm
+      setAllLeds(true); // Liga todos os LEDs
+      ledOnTime = millis(); // Atualiza o tempo em que os LEDs foram ligados
+      ledState = true;
+    }
+
+    // Verifica se 10 segundos se passaram desde que os LEDs foram ligados pela detecção de objeto
+    if (ledState && millis() - ledOnTime >= 10000) {
+      setAllLeds(false);
+      ledState = false;
+    }
+  }
+}
+
+void setAllLeds(bool state) {
+  digitalWrite(LED1_PIN, state ? HIGH : LOW);
+  digitalWrite(LED2_PIN, state ? HIGH : LOW);
+  digitalWrite(LED3_PIN, state ? HIGH : LOW);
+  digitalWrite(LED4_PIN, state ? HIGH : LOW);
+}
